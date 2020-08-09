@@ -1,9 +1,26 @@
 library(shiny)
 library(ggplot2)
+library(shinythemes)
 ###https://stackoverflow.com/questions/38083286/r-shiny-how-to-dynamically-append-arbitrary-number-of-input-widgets###
 
-LHSchoices <- c("X1", "X2", "X3", "X4")
-
+#LHSchoices <- c("X1", "X2", "X3", "X4")
+jscode <- '
+$(function() {
+  var $els = $("[data-proxy-click]");
+  $.each(
+    $els,
+    function(idx, el) {
+      var $el = $(el);
+      var $proxy = $("#" + $el.data("proxyClick"));
+      $el.keydown(function (e) {
+        if (e.keyCode == 13) {
+          $proxy.click();
+        }
+      });
+    }
+  );
+});
+'
 
 #------------------------------------------------------------------------------#
 
@@ -20,13 +37,15 @@ namesUI <- function(id, number) {
           
             ),
             
+            
             column(5,
-                  
+                   tagAppendAttributes(
                     #numericInput(paste0(ns("value.name")), label=NULL, value=T)#,
-                   textInput(ns("value.name"), label=NULL, placeholder=NULL, value="0")
+                   textInput(ns("value.name"), label=NULL, placeholder=NULL, value="0"),
+                   `data-proxy-click` = "submit")
                    
-           
             )
+            
         )
     )
     
@@ -77,32 +96,40 @@ names <- function(input, output, session, name.number){
 
 # Shiny UI ----
 
-ui <- fixedPage(
+ui <- navbarPage("The Scoreboard App",
+                 theme = shinytheme("cosmo"),
+                 
+                tabPanel("Molkky",
+                         tags$head(tags$script(HTML(jscode))),
     #verbatimTextOutput("test1"),
-  fluidRow(
-      column(4,
-        namesUI("var1", 1),
-        h5(""),
-        actionButton("insertBtn", "New player"),
-        actionButton("submit", "Submit")
-    ),
-    #tableOutput("test2"),
-    
-    
-    #verbatimTextOutput(paste0("test4")),
-      column(8,
-        plotOutput("plot"),
-        verbatimTextOutput(paste0("test3")),
-      )
-  )
-    #verbatimTextOutput(paste0("test5")),
-    #verbatimTextOutput(paste0("test6"))
-    ##tags$script("
-    #Shiny.addCustomMessageHandler('resetValue', function(variableName) {
-    ##  Shiny.onInputChange(variableName, null);
-    #});
-  #")
-
+                        fluidRow(
+                            column(4,
+                                   
+                                   
+                                    namesUI("var1", 1),
+                                    h5(""),
+                                    actionButton("insertBtn", "New player", class = "btn-secondary"),
+                                    actionButton("submit", "Submit", class = "btn-primary")
+                          ),
+                          #tableOutput("test2"),
+                          
+                          
+                          #verbatimTextOutput(paste0("test4")),
+                            column(8,
+                              plotOutput("plot"),
+                              #verbatimTextOutput(paste0("test3")),
+                            )
+                        )
+                          #verbatimTextOutput(paste0("test5")),
+                          #verbatimTextOutput(paste0("test6"))
+                          ##tags$script("
+                          #Shiny.addCustomMessageHandler('resetValue', function(variableName) {
+                          ##  Shiny.onInputChange(variableName, null);
+                          #});
+                        #")
+                      
+                      )#,
+#tabPanel("Standard")
 )
 
 # Shiny Server ----
@@ -126,6 +153,7 @@ server <- function(input, output, session) {
     
     
     observeEvent(input$submit, {
+      try({
       df = isolate(add.name$df)
       print(df)
         
@@ -149,7 +177,8 @@ server <- function(input, output, session) {
           updateNumericInput(session, ns("value.name"), value = 0)
         }
         
-      output$plot <- renderPlot({
+      
+        output$plot <- renderPlot({
         #input$newplot
         # Add a little noise to the cars data
         #cars2 <- 1:total$tot[1]
@@ -179,9 +208,12 @@ server <- function(input, output, session) {
         #names(df)[5] <- total
         print(df)
         
+        df$name <- factor(df$name, levels = df$name)
+        
         ggplot(data=df, aes(x=name, y=total))+
           geom_segment(aes(x=name, xend=name, y=0, yend=total), color="grey")+
           geom_point(aes(color=x), size=10)+
+          geom_text(aes(label=total), position=position_dodge(width=0.9), vjust=0.4, colour = "white", fontface = "bold", size = 5)+
           #scale_fill_continuous(values=c("deepskyblue1", "yellow1"))+
           scale_color_manual(values=c("#e6d700", "#E69F00","#e63600",  "#999999", "#00a616" ),
                              breaks = c("0", "1", "2", "3", "100"),
@@ -195,8 +227,17 @@ server <- function(input, output, session) {
           #scale_x_discrete(breaks=1:nrow(add.name$df),
           #                 labels=add.name$df[,2])+
           xlab("")+
-          ylim(0,50)
+          ylab("Total")+
+          ylim(0,50)+
+          theme(axis.text=element_text(size=14, face = "bold"),
+                axis.title=element_text(size=18, face = "bold"),
+                legend.text=element_text(size=12, face = "bold"),
+                legend.title=element_blank()
+                )
         
+                 
+        
+      })
       })
     })
         

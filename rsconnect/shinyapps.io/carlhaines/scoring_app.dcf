@@ -1,0 +1,10 @@
+name: scoring_app
+title:
+username:
+account: carlhaines
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2654406
+bundleId: 3493554
+url: https://carlhaines.shinyapps.io/scoring_app/
+when: 1596985184.82801
